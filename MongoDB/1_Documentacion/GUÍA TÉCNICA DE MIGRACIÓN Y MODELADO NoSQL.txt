@@ -1,0 +1,389 @@
+# GUÍA TÉCNICA DE MIGRACIÓN Y MODELADO NoSQL
+## Proyecto SolarPulseIoT – SQL Server a MongoDB
+
+**Fecha de documentación:** 20 de noviembre de 2026  
+**Base de datos de origen:** SQL Server – `SolarPulseIoT`  
+**Base de datos de destino:** MongoDB – `SolarPulseIoT`  
+**Herramienta de administración:** MongoDB Compass  
+**Formato de intercambio:** CSV
+
+---
+
+# 1. Objetivo del proceso
+
+El objetivo de este procedimiento fue migrar la información de la base de datos relacional `SolarPulseIoT`, desarrollada en SQL Server, hacia MongoDB, aplicando técnicas de modelado de bases de datos NoSQL.
+
+No se realizó una conversión directa de cada tabla a una colección independiente. En su lugar, se reorganizaron los datos para aprovechar las características documentales de MongoDB, utilizando documentos embebidos, referencias y agrupaciones de información.
+
+El proceso contempló las siguientes actividades:
+
+1. Identificación de las tablas de SQL Server.
+2. Exportación de información mediante archivos CSV.
+3. Importación de los archivos en colecciones temporales de MongoDB.
+4. Transformación y reorganización de los documentos.
+5. Aplicación de patrones de modelado NoSQL.
+6. Validación de cantidades, relaciones y cálculos.
+7. Preparación del modelo definitivo para su documentación y diagrama.
+
+# 2. Estructura de la base de datos de origen
+
+La base de datos original de SQL Server cuenta con 25 tablas y una vista denominada `vw_Incidencia_Instalacion`.
+
+Las 25 tablas utilizadas fueron:
+
+- Actividad_mantenimiento
+- Alerta
+- Anomalia
+- Cliente
+- Consumo_energia
+- Costo_mantenimiento
+- Detalle_presupuesto
+- Distribuidora
+- Especialidad
+- Factor_emision
+- Incidencia
+- Instalacion
+- Medicion
+- Modelo_panel
+- Orden_mantenimiento
+- Panel_Solar
+- Permiso
+- Repuesto
+- Rol
+- Rol_Permiso
+- Sensor_iot
+- Tarifa_electrica
+- Tecnico
+- Tecnico_Especialidad
+- Usuario
+
+La vista `vw_Incidencia_Instalacion` corresponde a una estructura de consulta de SQL Server y no fue considerada como una colección adicional dentro de las 25 tablas migradas.
+
+# 3. Exportación de datos desde SQL Server
+
+Para realizar la migración se utilizó CSV como formato de intercambio entre SQL Server y MongoDB.
+
+Se preparó el script:
+
+`01_exportar_SolarPulseIoT_CSV.sql`
+
+Este archivo permite preparar la exportación de las tablas de origen.
+
+El procedimiento general fue:
+
+1. Abrir SQL Server Management Studio (SSMS).
+2. Conectarse a la instancia correspondiente.
+3. Seleccionar la base de datos `SolarPulseIoT`.
+4. Ejecutar el procedimiento de exportación preparado.
+5. Generar un archivo CSV por cada tabla.
+6. Comprobar que los archivos contengan los registros esperados.
+
+**Importante:** los archivos CSV deben conservar los encabezados de las columnas, ya que estos permiten identificar los campos durante la importación y posterior transformación.
+
+# 4. Importación de datos en MongoDB Compass
+
+Una vez obtenidos los archivos CSV, se procedió a importarlos en MongoDB Compass.
+
+La conexión utilizada fue:
+
+`mongodb://localhost:27017`
+
+La base de datos de destino fue:
+
+`SolarPulseIoT`
+
+Para mantener separados los datos originales de los documentos transformados, se crearon 25 colecciones temporales con el prefijo `stg_`.
+
+Ejemplos:
+
+- `stg_Cliente`
+- `stg_Usuario`
+- `stg_Instalacion`
+- `stg_Medicion`
+- `stg_Consumo_energia`
+- `stg_Alerta`
+
+El prefijo `stg_` identifica las colecciones de staging (temporales).
+
+**Procedimiento de importación:**
+
+1. Abrir MongoDB Compass.
+2. Conectarse a `localhost:27017`.
+3. Seleccionar o crear la base de datos `SolarPulseIoT`.
+4. Crear la colección temporal correspondiente.
+5. Seleccionar la opción de importar datos.
+6. Elegir el archivo CSV correspondiente.
+7. Verificar que el formato seleccionado sea CSV.
+8. Comprobar los campos y tipos de datos importados.
+9. Repetir el procedimiento para las 25 tablas.
+
+Al finalizar, las 25 tablas originales quedaron disponibles como colecciones temporales.
+
+# 5. Transformación y modelado de datos
+
+Después de importar los datos, se ejecutó el proceso de transformación mediante el script:
+
+`02_transformar_SolarPulseIoT_MongoDB.js`
+
+Este script utiliza operaciones de agregación de MongoDB, principalmente:
+
+- `$lookup`: permite relacionar documentos de diferentes colecciones.
+- `$unwind`: permite trabajar individualmente con elementos de arreglos.
+- `$group`: agrupa documentos según determinados criterios.
+- `$project`: define la estructura de salida de los documentos.
+- `$merge`: guarda los resultados en las colecciones finales.
+
+Se utilizaron las colecciones temporales como fuentes de información para construir 14 colecciones definitivas.
+
+La transformación no consistió únicamente en cambiar nombres de tablas. También permitió reorganizar la información, incorporar documentos embebidos y establecer referencias entre colecciones.
+
+## 5.1. Estructura de las 14 colecciones finales
+
+| Colección | Información incorporada |
+|---|---|
+| `roles` | Roles y permisos embebidos. |
+| `usuarios` | Usuarios, información de roles y perfil técnico. |
+| `clientes` | Información de los clientes. |
+| `tarifas` | Tarifas eléctricas y distribuidoras embebidas. |
+| `factores_emision` | Factores de emisión. |
+| `modelos_panel` | Modelos de panel solar. |
+| `repuestos` | Información de repuestos. |
+| `instalaciones` | Instalaciones, paneles, sensores y alertas recientes. |
+| `mediciones` | Mediciones agrupadas por sensor y hora. |
+| `consumos_energia` | Consumos agrupados por instalación y día. |
+| `anomalias` | Información de anomalías y referencias relacionadas. |
+| `alertas` | Alertas con información extendida de anomalías e instalaciones. |
+| `incidencias` | Incidencias y referencias relacionadas. |
+| `ordenes_mantenimiento` | Órdenes, actividades, presupuesto y costos embebidos. |
+
+## 5.2. Patrones de modelado NoSQL utilizados
+
+Durante la transformación se aplicaron los siguientes patrones:
+
+**Embedding Pattern**
+
+Consiste en almacenar información relacionada dentro del mismo documento mediante objetos o arreglos.
+
+Ejemplos:
+- Permisos dentro de `roles`.
+- Distribuidoras dentro de `tarifas`.
+- Paneles y sensores dentro de `instalaciones`.
+- Actividades y presupuestos dentro de `ordenes_mantenimiento`.
+
+**Referencing Pattern**
+
+Consiste en conservar identificadores que permiten relacionar documentos almacenados en otras colecciones.
+
+Se utiliza para mantener relaciones sin duplicar toda la información relacionada.
+
+**Subset Pattern**
+
+Consiste en almacenar un subconjunto de información que se consulta frecuentemente.
+
+Ejemplo:
+- `alertas_recientes` dentro de `instalaciones`, que conserva las últimas cinco alertas relevantes.
+
+**Extended Reference Pattern**
+
+Consiste en almacenar la referencia de otro documento junto con algunos datos descriptivos para evitar consultas adicionales.
+
+Ejemplos:
+- Información extendida del rol en `usuarios`.
+- Información del cliente en `instalaciones`.
+- Información de la tarifa y del factor de emisión en `instalaciones`.
+
+También se aplicaron:
+
+**Bucketing Pattern:** agrupa mediciones por sensor y hora, y consumos por instalación y día.
+
+**Computed Pattern:** conserva resultados calculados como promedios, totales y cantidades de registros.
+
+# 6. Validación de la migración
+
+Para comprobar que la transformación se realizó correctamente se utilizó el script:
+
+`03_validar_SolarPulseIoT_MongoDB.js`
+
+Se realizaron verificaciones de:
+
+- Cantidad de documentos en las colecciones finales.
+- Integridad de las referencias.
+- Cantidad de elementos embebidos.
+- Existencia de documentos relacionados.
+- Estructura de las colecciones transformadas.
+
+## 6.1. Cantidad de documentos en las colecciones finales
+
+Los resultados obtenidos fueron:
+
+| Colección | Documentos |
+|---|---:|
+| roles | 3 |
+| usuarios | 4 |
+| clientes | 3 |
+| tarifas | 2 |
+| factores_emision | 1 |
+| modelos_panel | 2 |
+| repuestos | 2 |
+| instalaciones | 2 |
+| mediciones | 3 |
+| consumos_energia | 2 |
+| anomalias | 4 |
+| alertas | 4 |
+| incidencias | 4 |
+| ordenes_mantenimiento | 1 |
+| **Total** | **37** |
+
+El total de 37 corresponde a los documentos de las 14 colecciones finales, no a la cantidad de registros originales de SQL Server.
+
+## 6.2. Validación de documentos embebidos
+
+Se verificaron los siguientes resultados:
+
+| Elemento | Cantidad |
+|---|---:|
+| Permisos embebidos en roles | 5 |
+| Especialidades embebidas en usuarios | 2 |
+| Paneles embebidos | 3 |
+| Sensores embebidos | 2 |
+| Lecturas dentro de mediciones | 6 |
+| Registros dentro de consumos | 3 |
+| Actividades embebidas | 1 |
+| Detalles de presupuesto embebidos | 1 |
+| Órdenes con costo embebido | 1 |
+
+Estos resultados permitieron comprobar que la información relacionada se encontraba incorporada en los documentos correspondientes.
+
+## 6.3. Validación de referencias
+
+Se comprobaron seis condiciones de integridad:
+
+1. Usuarios sin rol embebido.
+2. Instalaciones sin cliente embebido.
+3. Paneles sin modelo dentro de instalaciones.
+4. Anomalías sin `instalacion_id`.
+5. Alertas sin anomalía embebida.
+6. Incidencias sin `instalacion_id`.
+
+Las seis comprobaciones devolvieron cero registros con errores.
+
+## 6.4. Validación de mediciones y consumos
+
+Se compararon los registros originales de las colecciones temporales con los documentos transformados.
+
+**Mediciones:**
+
+- Registros originales: 6.
+- Lecturas migradas: 6.
+- Errores encontrados: 0.
+- Resultado: todos los registros coinciden.
+
+**Consumos:**
+
+- Registros originales: 3.
+- Registros migrados: 3.
+- Errores encontrados: 0.
+- Resultado: todos los registros coinciden.
+
+También se verificaron los cálculos de promedios y totales.
+
+Posteriormente se actualizó el promedio de temperatura de las mediciones mediante un script adicional.
+
+Se procesaron tres grupos y se actualizaron tres documentos.
+
+**Nota:** los promedios almacenados en `mediciones.resumen` incluyen voltaje, corriente, irradiancia y temperatura.
+
+## 7.2. Verificación de archivos
+
+Se ejecutaron los siguientes comandos:
+
+```powershell
+(Get-ChildItem "C:\Backups\SolarPulseIoT_Respaldo_2026-11-20\SolarPulseIoT" -Filter "*.bson").Count
+```
+
+Resultado:
+
+`39`
+
+Para verificar los metadatos:
+
+```powershell
+(Get-ChildItem "C:\Backups\SolarPulseIoT_Respaldo_2026-11-20\SolarPulseIoT" -Filter "*.metadata.json").Count
+```
+
+Resultado:
+
+`39`
+
+Los 39 archivos BSON corresponden a las 14 colecciones finales y las 25 temporales.
+
+# 7. Estado actual de la base de datos
+
+Al finalizar las validaciones y el respaldo, se comprobó la existencia de:
+
+| Tipo | Cantidad |
+|---|---:|
+| Colecciones finales | 14 |
+| Colecciones temporales | 25 |
+| Total de colecciones | 39 |
+
+Las 25 colecciones temporales se mantienen en la base de datos.
+
+No se han eliminado porque todavía pueden ser útiles para revisar los datos originales, repetir las transformaciones o demostrar el proceso de migración.
+
+## 7.1. ¿Qué colecciones deben utilizarse para el diagrama?
+
+Para elaborar el diagrama de colecciones de MongoDB se deben considerar exclusivamente las 14 colecciones finales.
+
+Las colecciones `stg_` no forman parte del modelo definitivo. Representan una etapa intermedia de importación y transformación.
+
+El diagrama debe mostrar:
+
+- Las 14 colecciones finales.
+- Los campos identificadores y referencias entre colecciones.
+- Los documentos y arreglos embebidos.
+- Los patrones de modelado aplicados.
+
+# 8. Archivos y scripts del proyecto
+
+Los archivos principales utilizados en el procedimiento son:
+
+| Archivo | Función |
+|---|---|
+| `01_exportar_SolarPulseIoT_CSV.sql` | Preparar la exportación de datos desde SQL Server. |
+| `02_transformar_SolarPulseIoT_MongoDB.js` | Construir las 14 colecciones finales. |
+| `03_validar_SolarPulseIoT_MongoDB.js` | Comprobar cantidades, referencias y estructuras. |
+| Script de actualización de temperatura | Actualizar el promedio de temperatura en las mediciones. |
+| Respaldo BSON y metadatos JSON | Conservar una copia de las 39 colecciones. |
+
+Se recomienda compartir los scripts junto con sus resultados de ejecución para facilitar la revisión del proceso.
+
+# 9. Recomendaciones para los integrantes del equipo
+
+Para revisar o continuar el proyecto:
+
+1. Instalar MongoDB Community Server y MongoDB Compass.
+2. Conectarse a `mongodb://localhost:27017`.
+3. Importar o restaurar la base de datos según los archivos disponibles.
+4. Revisar las 14 colecciones finales.
+5. Ejecutar las consultas de validación.
+6. Consultar los scripts para comprender cómo se construyó cada colección.
+7. Utilizar únicamente las 14 colecciones finales para el diagrama del modelo NoSQL.
+
+Si se recibe únicamente el respaldo BSON, se debe utilizar `mongorestore` para recuperar las colecciones. Los archivos BSON no se importan directamente como si fueran CSV.
+
+No se recomienda eliminar las colecciones `stg_` hasta que el equipo haya terminado de revisar el proceso de migración y confirmado que no necesita volver a utilizar los datos originales.
+
+---
+
+# 10. Conclusión
+
+La migración de `SolarPulseIoT` desde SQL Server hacia MongoDB permitió transformar una estructura relacional de 25 tablas en un modelo documental compuesto por 14 colecciones finales.
+
+Durante el proceso se aplicaron patrones de modelado NoSQL como Embedding, Referencing, Subset y Extended Reference, además de Bucketing y Computed para organizar las mediciones y los consumos de energía.
+
+Las validaciones realizadas permitieron comprobar la correspondencia de los registros migrados, los documentos embebidos, las referencias y los cálculos almacenados.
+
+Finalmente, se generó un respaldo de las 39 colecciones existentes y se comprobó mediante una simulación que los archivos podían ser reconocidos por MongoDB Database Tools.
+
+**Estado del proyecto:** migración, modelado y validación. Las colecciones temporales se conservan para facilitar la revisión y trazabilidad del procedimiento.
