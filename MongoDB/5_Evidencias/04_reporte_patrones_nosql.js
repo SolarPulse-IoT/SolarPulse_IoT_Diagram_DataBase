@@ -97,15 +97,6 @@ const reporte = {
     documentos: 0,
     elementos: 0
   },
-  Bucketing: {
-    colecciones: new Set(),
-    documentos: 0,
-    elementos: 0
-  },
-  Computed: {
-    colecciones: new Set(),
-    documentos: 0
-  }
 };
 
 // Analizar cada colección final
@@ -166,34 +157,6 @@ coleccionesFinales.forEach(nombreColeccion => {
       reporte.Subset.elementos += doc.alertas_recientes.length;
       reporte.Subset.colecciones.add(nombreColeccion);
     }
-
-    // 5. BUCKETING
-    if (
-      nombreColeccion === "mediciones" &&
-      Array.isArray(doc.lecturas)
-    ) {
-      reporte.Bucketing.documentos++;
-      reporte.Bucketing.elementos += doc.lecturas.length;
-      reporte.Bucketing.colecciones.add(nombreColeccion);
-    }
-
-    if (
-      nombreColeccion === "consumos_energia" &&
-      Array.isArray(doc.registros)
-    ) {
-      reporte.Bucketing.documentos++;
-      reporte.Bucketing.elementos += doc.registros.length;
-      reporte.Bucketing.colecciones.add(nombreColeccion);
-    }
-
-    // 6. COMPUTED
-    if (
-      doc.resumen !== undefined ||
-      typeof obtenerCampo(doc, "costo.costo_total") === "number"
-    ) {
-      reporte.Computed.documentos++;
-      reporte.Computed.colecciones.add(nombreColeccion);
-    }
   });
 });
 
@@ -220,5 +183,5 @@ Object.entries(reporte).forEach(([patron, datos]) => {
 });
 
 print("");
-print("TOTAL DE PATRONES DOCUMENTADOS: 6");
+print("TOTAL DE PATRONES DOCUMENTADOS: 4");
 print("========================================");

@@ -19,22 +19,16 @@ transformacion.
 - Colecciones finales: 14
 - Fecha de documentacion: 20 de noviembre de 2026
 
-## Modelado realizado
+## Patrones de modelado NoSQL
 
-No se convirtieron todas las tablas SQL en colecciones independientes. La
-informacion se reorganizo con las siguientes estrategias:
+Para la transformación de la base de datos SolarPulseIoT se aplicaron cuatro patrones de modelado documental:
 
-- **Embedding:** permisos, perfil tecnico, paneles, sensores, actividades,
-  presupuesto y costo dentro de sus documentos principales.
-- **Referencing:** identificadores que relacionan documentos de otras
-  colecciones.
-- **Extended Reference:** datos descriptivos relacionados embebidos para
-  evitar consultas adicionales.
-- **Subset:** las cinco alertas mas recientes dentro de cada instalacion.
-- **Bucketing:** mediciones agrupadas por sensor y hora; consumos agrupados
-  por instalacion y dia.
-- **Computed:** promedios, totales y cantidades calculados durante la
-  transformacion.
+- **Embedding:** incorporación de información relacionada directamente dentro de los documentos principales, como permisos, roles, paneles y sensores.
+- **Referencing:** utilización de identificadores para relacionar documentos almacenados en diferentes colecciones.
+- **Extended Reference:** almacenamiento de información descriptiva relacionada dentro del documento principal, evitando consultas adicionales para recuperar datos frecuentes.
+- **Subset:** incorporación de un subconjunto limitado de información, como las cinco alertas más recientes de cada instalación.
+
+Estos patrones permiten adaptar la estructura documental a las necesidades de consulta y operación del sistema.
 
 ## Colecciones finales
 
@@ -171,8 +165,7 @@ MongoDB/
 ├── 02_Scripts_SQL/
 ├── 03_Scripts_MongoDB/
 ├── 04_Diagrama/
-├── 05_Evidencias/
-└── 06_Respaldo/
+└── 05_Evidencias/
 ```
 
 ## Archivos principales
@@ -183,5 +176,7 @@ MongoDB/
   construccion de las 14 colecciones finales.
 - [03_validar_SolarPulseIoT_MongoDB.js](03_Scripts_MongoDB/03_validar_SolarPulseIoT_MongoDB.js):
   validacion de conteos y referencias.
+- [04_reporte_patrones_nosql.js](05_Evidencias/04_reporte_patrones_nosql.js): 
+  validacion de patrones de modelado implementados.
 - [GUÍA TÉCNICA DE MIGRACIÓN Y MODELADO NoSQL.txt](01_Documentacion/GUÍA%20TÉCNICA%20DE%20MIGRACIÓN%20Y%20MODELADO%20NoSQL.txt):
   procedimiento detallado de migracion y modelado.
