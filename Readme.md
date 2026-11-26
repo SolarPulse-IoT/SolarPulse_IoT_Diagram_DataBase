@@ -48,3 +48,11 @@ Los diagramas incluidos en este repositorio permiten observar las diferentes eta
 2. **Diagrama Físico Normalizado:** representa la estructura organizada después de aplicar los principios de normalización y establecer correctamente las relaciones entre las entidades.
 
 De esta manera, ambos diagramas permiten visualizar la evolución del diseño de la base de datos y comprender cómo se transforma la estructura inicial en un modelo preparado para su implementación.
+
+## Modelado NoSQL – MongoDB
+
+Como parte de la evolución del proyecto SolarPulseIoT, se desarrolló una migración desde SQL Server hacia MongoDB.
+
+En esta sección se documentan el proceso de transformación de datos, el modelo documental de 14 colecciones, los patrones de diseño NoSQL considerados, los scripts de validación y el diagrama de la base de datos documental.
+
+Consulta la documentación completa en la carpeta [MongoDB](MongoDB/README.md).
